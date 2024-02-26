@@ -1,0 +1,57 @@
+trigger:
+  - master/*
+
+variables:
+  current_branch: ${env:BUILD_SOURCEBRANCH}
+  dev-env: dev
+  devtest-env: devtest
+  qa-env: qa
+  qatest-env: qatest
+  prod-env: prod
+  prodtest-env: prodtest
+
+pool: 
+  vmImage: 'ubuntu-latest'
+stages:
+  - stage: Dev
+    displayName: Dev
+    jobs:
+      - job: deployDev
+        steps:
+          - bash: echo "hello"
+
+          - script: |
+              python -m pip install --upgrade setuptools wheel 
+              pip install awscli --user
+            displayName: "Command Line Script"
+          - task: AmazonWebServices.aws-vsts-tools.AWSShellScript.AWSShellScript@1
+            displayName: "AWS Shell Script"
+            inputs:
+              awsCredentials: echo-sandbox-terraform
+              regionName: "us-east-1"
+              scriptType: inline
+              inlineScript: |
+                pwd
+                echo "ls"
+                ls -al 
+
+                echo "Terraform Initialization"
+                terraform init -backend=true -force-copy -backend-config  ./s3-backend.tfvars
+
+                echo "------------------------------"
+                ls -al
+
+                terraform -version
+                terraform providers
+
+                echo "Terraform Validate"
+                terraform validate
+
+                echo "terraform plan"
+                terraform plan -var-file ./terraform.tfvars -out sre-terraform.tfplan
+
+                echo "terraform apply"
+                terraform apply -auto-approve -var-file ./terraform.tfvars
+
+                echo "terraform output"
+                terraform output

@@ -1,0 +1,61 @@
+import json
+import time
+import boto3 # Python SDK for AWS
+
+s3 = boto3.client('s3')
+topic = boto3.client('sns')
+bucket = 'mkw_test_bucket'
+key = 'config.json'
+
+
+def write_into_s3_file(writeobj):
+    """
+    Upload new data to a bucket
+    :param writeobj: updated JSON data to upload
+    """
+    try:
+        s3.put_object(
+            Body=json.dumps(writeobj),
+            Bucket=bucket,
+            ACL='public-read-write',
+            ContentType='application/json',
+            Key=key)
+    except Exception as err:
+        print("Couldn't put object into S3 bucket: {}".format(err))
+
+
+def publish_msg(message):
+    """
+    Publish message to the topic created using Amazon SNS
+    :param message: Message to publish
+    """
+    try:
+        resp = topic.publish(
+            TargetArn="your-topic-arn",
+            Message=json.dumps({'default': message}),
+            MessageStructure='json')
+        print("Published message successfully")
+        return resp
+    except Exception as error:
+        print("Couldn't publish message: {}".format(error))
+        return error
+
+
+def lambda_handler(event, context):
+    # TODO implement
+
+    ts = time.time()
+    print(ts)
+#        for k, v in jsonobj.items():
+#            if k == 'names':
+#                jsonobj['names'].append(star)
+#        jsonobj['count'] = c + 1
+#        write_into_s3_file(jsonobj)
+#        message = "Hi, Send BC amount to {} for this month".format(star)
+#        resp = publish_msg(message)
+
+    print("Success")
+    return {
+        'statusCode': 200,
+#        'body': json.dumps(resp)
+    }

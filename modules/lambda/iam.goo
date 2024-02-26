@@ -1,0 +1,43 @@
+module "lambda-process-lambda-to-kinesis" {
+  name   = "lambda-process-lambda-to-kinesis"
+  policy = <<-EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Action": [
+                "logs:GetLogEvents",
+                "logs:createLogGroup",
+                "logs:CreateLogStream",
+                "logs:PutLogEvents"
+            ],
+            "Resource": "arn:aws:logs:*:*:*",
+            "Effect": "Allow",
+            "Sid": "AllowedLogsAccess"
+        },
+        {
+            "Action": [
+                "firehose:PutRecordBatch"
+            ],
+            "Resource": "arn:aws:firehose:us-east-2:${data.aws_caller_identity.current.account_id}:deliverystream/EchoLambdaFunctionLogsToSplunk-${var.aws_account}",
+            "Effect": "Allow",
+            "Sid": "AllowedFirehoseAccess"
+        }
+    ]
+}
+  EOF
+
+  aws_account   = var.aws_account
+  environment   = var.environment
+  create_policy = true
+  create_role   = true
+  service       = ["lambda.amazonaws.com"]
+
+  tags = (
+    {
+      "Project"     = "IAM-pipeline",
+      "CostCenter"  = "AWS",
+      "Environment" = var.environment
+    }
+  )
+}

@@ -1,0 +1,70 @@
+resource "aws_s3_bucket" "this" {
+  bucket        = var.bucket
+  force_destroy = true
+}
+
+resource "aws_s3_bucket_public_access_block" "this" {
+  bucket = aws_s3_bucket.this.id
+
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
+  restrict_public_buckets = false
+}
+
+resource "aws_s3_bucket_ownership_controls" "this" {
+  bucket = aws_s3_bucket.this.id
+
+  rule {
+    object_ownership = var.object_ownership
+  }
+  
+  depends_on = [aws_s3_bucket_public_access_block.this]
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
+  bucket = aws_s3_bucket.this.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "aws:kms"
+      kms_master_key_id   = "arn:aws:kms:us-east-2:508563857051:key/8337cc0e-f49b-45cb-bc90-0fd99960ea2cls"
+    }
+  }
+}
+
+resource "aws_s3_bucket_versioning" "this" {
+  bucket = aws_s3_bucket.this.id
+  versioning_configuration {
+    status = var.versioning_status
+  }
+}
+
+resource "aws_s3_bucket_website_configuration" "this" {
+  bucket = aws_s3_bucket.this.id
+
+  index_document {
+    suffix = "index.html"
+  }
+
+}
+
+resource "aws_s3_bucket_policy" "allow_web_access" {
+  bucket = aws_s3_bucket.this.id
+  policy = jsonencode({
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "PublicReadGetObject",
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": [
+	       "s3:GetObject"
+	    ],
+            "Resource": "${aws_s3_bucket.this.arn}/*"
+        }
+      ]
+    })
+
+    depends_on = [aws_s3_bucket_public_access_block.this]
+}
